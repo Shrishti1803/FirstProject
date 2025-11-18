@@ -96,7 +96,7 @@ int main(){
         //    This product will be inserted into MySQL
         // ---------------------------------------------------------
 
-     /*   Product p;
+        Product p;
         Date exp;
 
         // Product Name
@@ -177,7 +177,7 @@ int main(){
         cout << "Product Inserted Successfully!" << endl;
 
         delete pstmt;   // free memory
-*/
+
         // ---------------------------------------------------------
         // 9️⃣ Run a SELECT query to fetch all products from the table
         // ---------------------------------------------------------
