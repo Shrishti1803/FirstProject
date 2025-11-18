@@ -9,6 +9,7 @@ using namespace std;
 using namespace sql;
 
 class Date{
+    
     public:
         int day;
         int month;
@@ -86,7 +87,7 @@ int main(){
 
         // ---------------------------------------------------------
         // 4️⃣ Select the database to work with
-        //    All queries after this will run inside 'makeupdb'
+        //    All queries after this will run inside 'PROJECT1'
         // ---------------------------------------------------------
         con->setSchema("PROJECT1");
 
@@ -95,12 +96,13 @@ int main(){
         //    This product will be inserted into MySQL
         // ---------------------------------------------------------
 
-        Product p;
+     /*   Product p;
         Date exp;
 
         // Product Name
         cout << "Enter Product Name: ";
-        cin.ignore();
+        cin.ignore();//cin.ignore() → clears leftover junk so that
+                     //getline() → can properly read a full line.
         getline(cin, p.Product_name);
 
         // Category
@@ -175,7 +177,7 @@ int main(){
         cout << "Product Inserted Successfully!" << endl;
 
         delete pstmt;   // free memory
-
+*/
         // ---------------------------------------------------------
         // 9️⃣ Run a SELECT query to fetch all products from the table
         // ---------------------------------------------------------
@@ -210,9 +212,6 @@ int main(){
     catch (sql::SQLException &e) {
         cout << "Error: " << e.what() << endl;
     }
-
-
-
 
     return 0;
 }
