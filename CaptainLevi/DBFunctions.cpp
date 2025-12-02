@@ -408,3 +408,421 @@ int getCustomerIdByEmail(sql::Connection* con, const std::string& email) {
         return -1;
     }
 }
+
+
+// ---------------- createOrderFromCart ----------------
+bool createOrderFromCart(sql::Connection* con, int customerId, int &createdOrderId) {
+    if (!con) return false;
+    try {
+        // 1) load cart items
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT c.Product_ID, c.Quantity, p.Product_Name, p.Price "
+            "FROM Cart c JOIN PRODUCT p ON c.Product_ID = p.Product_ID "
+            "WHERE c.Customer_ID = ?"
+        );
+        pstmt->setInt(1, customerId);
+        sql::ResultSet* res = pstmt->executeQuery();
+
+        std::vector<int> productIds;
+        std::vector<int> qtys;
+        std::vector<double> prices;
+        std::vector<std::string> names;
+        double total = 0.0;
+
+        while (res->next()) {
+            int pid = res->getInt("Product_ID");
+            int qty = res->getInt("Quantity");
+            std::string pname = res->getString("Product_Name");
+            double price = res->getDouble("Price");
+            double subtotal = price * qty;
+
+            productIds.push_back(pid);
+            qtys.push_back(qty);
+            prices.push_back(price);
+            names.push_back(pname);
+            total += subtotal;
+        }
+        delete res;
+        delete pstmt;
+
+        if (productIds.empty()) return false;
+
+        // 2) insert Orders row (OrderDate = CURDATE(), DeliveryDate = CURDATE() + 4 days)
+        pstmt = con->prepareStatement(
+            "INSERT INTO Orders (CustomerID, OrderDate, DeliveryDate, TotalAmount) "
+            "VALUES (?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 4 DAY), ?)"
+        );
+        pstmt->setInt(1, customerId);
+        pstmt->setDouble(2, total);
+        pstmt->executeUpdate();
+        delete pstmt;
+
+        // 3) grab LAST_INSERT_ID()
+        pstmt = con->prepareStatement("SELECT LAST_INSERT_ID() AS id");
+        res = pstmt->executeQuery();
+        int orderId = -1;
+        if (res->next()) orderId = res->getInt("id");
+        delete res;
+        delete pstmt;
+
+        if (orderId == -1) return false;
+        createdOrderId = orderId;
+
+        // 4) insert OrderItems
+        for (size_t i = 0; i < productIds.size(); ++i) {
+            sql::PreparedStatement* p2 = con->prepareStatement(
+                "INSERT INTO OrderItems (OrderID, ProductID, Quantity, PriceAtPurchase, Subtotal) "
+                "VALUES (?, ?, ?, ?, ?)"
+            );
+            p2->setInt(1, orderId);
+            p2->setInt(2, productIds[i]);
+            p2->setInt(3, qtys[i]);
+            p2->setDouble(4, prices[i]);
+            p2->setDouble(5, prices[i] * qtys[i]);
+            p2->executeUpdate();
+            delete p2;
+        }
+
+        // 5) reduce stock
+        sql::Statement* stmt = con->createStatement();
+        stmt->execute(
+            "UPDATE PRODUCT p "
+            "JOIN Cart c ON p.Product_ID = c.Product_ID "
+            "SET p.Stock_Qtn = p.Stock_Qtn - c.Quantity "
+            "WHERE c.Customer_ID = " + std::to_string(customerId)
+        );
+
+        // 6) clear cart
+        stmt->execute("DELETE FROM Cart WHERE Customer_ID = " + std::to_string(customerId));
+        delete stmt;
+
+        return true;
+    } catch (sql::SQLException &e) {
+        cerr << "SQL Error in createOrderFromCart: " << e.what() << endl;
+        return false;
+    }
+}
+
+// ---------------- loadOrdersForCustomer ----------------
+std::vector<Order> loadOrdersForCustomer(sql::Connection* con, int customerId) {
+    std::vector<Order> orders;
+    if (!con) return orders;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT OrderID, OrderDate, DeliveryDate, TotalAmount "
+            "FROM Orders WHERE CustomerID = ? ORDER BY OrderDate DESC, OrderID DESC"
+        );
+        pstmt->setInt(1, customerId);
+        sql::ResultSet* res = pstmt->executeQuery();
+        while (res->next()) {
+            orders.push_back(
+                Order(
+                    res->getInt("OrderID"),
+                    customerId,
+                    res->getString("OrderDate"),
+                    res->getString("DeliveryDate"),
+                    res->getDouble("TotalAmount")
+                )
+            );
+        }
+        delete res;
+        delete pstmt;
+    } catch (sql::SQLException &e) {
+        cerr << "SQL Error in loadOrdersForCustomer: " << e.what() << endl;
+    }
+    return orders;
+}
+
+// ---------------- loadOrderItems ----------------
+std::vector<OrderItem> loadOrderItems(sql::Connection* con, int orderId) {
+    std::vector<OrderItem> items;
+    if (!con) return items;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT oi.ProductID, p.Product_Name, oi.Quantity, oi.PriceAtPurchase, oi.Subtotal "
+            "FROM OrderItems oi JOIN PRODUCT p ON oi.ProductID = p.Product_ID "
+            "WHERE oi.OrderID = ?"
+        );
+        pstmt->setInt(1, orderId);
+        sql::ResultSet* res = pstmt->executeQuery();
+        while (res->next()) {
+            items.push_back(
+                OrderItem(
+                    res->getInt("ProductID"),
+                    res->getString("Product_Name"),
+                    res->getInt("Quantity"),
+                    res->getDouble("PriceAtPurchase"),
+                    res->getDouble("Subtotal")
+                )
+            );
+        }
+        delete res;
+        delete pstmt;
+    } catch (sql::SQLException &e) {
+        cerr << "SQL Error in loadOrderItems: " << e.what() << endl;
+    }
+    return items;
+}
+
+// ---------------- getCustomerById ----------------
+bool getCustomerById(sql::Connection* con, int customerId, Customer &outCustomer) {
+    if (!con) return false;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT ID, Name, Contact_Num, Email, Address FROM CUSTOMER_DETAILS WHERE ID = ?"
+        );
+        pstmt->setInt(1, customerId);
+        sql::ResultSet* res = pstmt->executeQuery();
+        if (res->next()) {
+            outCustomer.setId(res->getInt("ID"));
+            outCustomer.setName(res->getString("Name"));
+            outCustomer.setContactnumber(res->getString("Contact_Num"));
+            outCustomer.setEmail(res->getString("Email"));
+            outCustomer.setAddress(res->getString("Address"));
+            delete res;
+            delete pstmt;
+            return true;
+        }
+        delete res;
+        delete pstmt;
+    } catch (sql::SQLException &e) {
+        cerr << "SQL Error in getCustomerById: " << e.what() << endl;
+    }
+    return false;
+}
+
+// ---------------- updateCustomerDetails ----------------
+bool updateCustomerDetails(sql::Connection* con, const Customer &c) {
+    if (!con) return false;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "UPDATE CUSTOMER_DETAILS SET Name = ?, Contact_Num = ?, Address = ? WHERE ID = ?"
+        );
+        pstmt->setString(1, c.getName());
+        pstmt->setString(2, c.getContactnumber());
+        pstmt->setString(3, c.getAddress());
+        pstmt->setInt(4, c.getId());
+        int rows = pstmt->executeUpdate();
+        delete pstmt;
+        return rows > 0;
+    } catch (sql::SQLException &e) {
+        cerr << "SQL Error in updateCustomerDetails: " << e.what() << endl;
+        return false;
+    }
+}
+
+// ---------------- updateLoginPassword ----------------
+bool updateLoginPassword(sql::Connection* con, const std::string &email, const std::string &newPassword) {
+    if (!con) return false;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "UPDATE `LOGIN` SET Password = ? WHERE Email = ?"
+        );
+        pstmt->setString(1, newPassword);
+        pstmt->setString(2, email);
+        int rows = pstmt->executeUpdate();
+        delete pstmt;
+        return rows > 0;
+    } catch (sql::SQLException &e) {
+        cerr << "SQL Error in updateLoginPassword: " << e.what() << endl;
+        return false;
+    }
+}
+
+vector<int> searchProductsByName(sql::Connection* con, const string &name) {
+    vector<int> ids;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT Product_ID FROM PRODUCT WHERE Product_Name LIKE ?"
+        );
+        pstmt->setString(1, "%" + name + "%");
+        sql::ResultSet* res = pstmt->executeQuery();
+
+        while (res->next()) {
+            ids.push_back(res->getInt("Product_ID"));
+        }
+
+        delete res; delete pstmt;
+    } catch (sql::SQLException &e) {
+        cerr << "SQL Error in searchProductsByName: " << e.what() << endl;
+    }
+    return ids;
+}
+
+vector<int> searchProductsByCompany(sql::Connection* con, const string &company) {
+    vector<int> ids;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT Product_ID FROM PRODUCT WHERE Company_name LIKE ?"
+        );
+        pstmt->setString(1, "%" + company + "%");
+        sql::ResultSet* res = pstmt->executeQuery();
+
+        while (res->next()) {
+            ids.push_back(res->getInt("Product_ID"));
+        }
+
+        delete res; delete pstmt;
+    } catch (sql::SQLException &e) {
+        cerr << "SQL Error in searchProductsByCompany: " << e.what() << endl;
+    }
+    return ids;
+}
+
+vector<int> searchProductsByCategory(sql::Connection* con, const string &category) {
+    vector<int> ids;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT Product_ID FROM PRODUCT WHERE Category LIKE ?"
+        );
+        pstmt->setString(1, "%" + category + "%");
+        sql::ResultSet* res = pstmt->executeQuery();
+
+        while (res->next()) {
+            ids.push_back(res->getInt("Product_ID"));
+        }
+
+        delete res; delete pstmt;
+    } catch (sql::SQLException &e) {
+        cerr << "SQL Error in searchProductsByCategory: " << e.what() << endl;
+    }
+    return ids;
+}
+
+vector<int> searchProductsByPriceRange(sql::Connection* con, double minPrice, double maxPrice) {
+    vector<int> ids;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT Product_ID FROM PRODUCT WHERE Price BETWEEN ? AND ?"
+        );
+        pstmt->setDouble(1, minPrice);
+        pstmt->setDouble(2, maxPrice);
+        sql::ResultSet* res = pstmt->executeQuery();
+
+        while (res->next()) {
+            ids.push_back(res->getInt("Product_ID"));
+        }
+
+        delete res; delete pstmt;
+    } catch (sql::SQLException &e) {
+        cerr << "SQL Error in searchProductsByPriceRange: " << e.what() << endl;
+    }
+    return ids;
+}
+
+vector<int> sortProductsByPriceAsc(sql::Connection* con, const string &cat, const string &subcat) {
+    vector<int> ids;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT Product_ID FROM PRODUCT WHERE Category=? AND Subcategory=? ORDER BY Price ASC"
+        );
+        pstmt->setString(1, cat);
+        pstmt->setString(2, subcat);
+        sql::ResultSet* rs = pstmt->executeQuery();
+
+        while (rs->next())
+            ids.push_back(rs->getInt(1));
+
+        delete rs;
+        delete pstmt;
+    } catch (...) {}
+    return ids;
+}
+
+vector<int> sortProductsByPriceDesc(sql::Connection* con, const string &cat, const string &subcat) {
+    vector<int> ids;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT Product_ID FROM PRODUCT WHERE Category=? AND Subcategory=? ORDER BY Price DESC"
+        );
+        pstmt->setString(1, cat);
+        pstmt->setString(2, subcat);
+        sql::ResultSet* rs = pstmt->executeQuery();
+
+        while (rs->next())
+            ids.push_back(rs->getInt(1));
+
+        delete rs;
+        delete pstmt;
+    } catch (...) {}
+    return ids;
+}
+
+vector<int> sortProductsByName(sql::Connection* con, const string &cat, const string &subcat) {
+    vector<int> ids;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT Product_ID FROM PRODUCT WHERE Category=? AND Subcategory=? ORDER BY Product_Name ASC"
+        );
+        pstmt->setString(1, cat);
+        pstmt->setString(2, subcat);
+        sql::ResultSet* rs = pstmt->executeQuery();
+
+        while (rs->next())
+            ids.push_back(rs->getInt(1));
+
+        delete rs;
+        delete pstmt;
+    } catch (...) {}
+    return ids;
+}
+
+vector<int> sortProductsByStock(sql::Connection* con, const string &cat, const string &subcat) {
+    vector<int> ids;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT Product_ID FROM PRODUCT WHERE Category=? AND Subcategory=? ORDER BY Stock_Qtn DESC"
+        );
+        pstmt->setString(1, cat);
+        pstmt->setString(2, subcat);
+        sql::ResultSet* rs = pstmt->executeQuery();
+
+        while (rs->next())
+            ids.push_back(rs->getInt(1));
+
+        delete rs;
+        delete pstmt;
+    } catch (...) {}
+    return ids;
+}
+
+vector<int> filterProductsByCompany(sql::Connection* con, const string &cat, const string &subcat, const string &company) {
+    vector<int> ids;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT Product_ID FROM PRODUCT WHERE Category=? AND Subcategory=? AND Company_name=?"
+        );
+        pstmt->setString(1, cat);
+        pstmt->setString(2, subcat);
+        pstmt->setString(3, company);
+        sql::ResultSet* rs = pstmt->executeQuery();
+
+        while (rs->next())
+            ids.push_back(rs->getInt(1));
+
+        delete rs;
+        delete pstmt;
+    } catch (...) {}
+    return ids;
+}
+
+vector<int> filterProductsByPriceRange(sql::Connection* con, const string &cat, const string &subcat, float low, float high) {
+    vector<int> ids;
+    try {
+        sql::PreparedStatement* pstmt = con->prepareStatement(
+            "SELECT Product_ID FROM PRODUCT WHERE Category=? AND Subcategory=? AND Price BETWEEN ? AND ?"
+        );
+        pstmt->setString(1, cat);
+        pstmt->setString(2, subcat);
+        pstmt->setDouble(3, low);
+        pstmt->setDouble(4, high);
+        sql::ResultSet* rs = pstmt->executeQuery();
+
+        while (rs->next())
+            ids.push_back(rs->getInt(1));
+
+        delete rs;
+        delete pstmt;
+    } catch (...) {}
+    return ids;
+}

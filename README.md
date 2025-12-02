@@ -1,92 +1,171 @@
-📦 PROJECT1 — C++ MySQL Shopping Application
+📦 PROJECT1 – Console-Based E-Commerce Application
 
-A console-based shopping management application written in C++ with MySQL as the backend.
-The system supports user registration, secure login, customer profile creation, product browsing, cart management, and checkout.
+A complete mini-ecommerce system built using C++, MySQL Connector/C++, and modular OOP design.
 
-This project is structured to mimic real-world e-commerce workflows and demonstrates database connectivity, modular C++ architecture, and full-stack logic.
+🚀 Overview
 
-🚀 Features Implemented
-🔹 User System
+PROJECT1 is a fully interactive console-based e-commerce system that allows customers to browse products, add items to cart, place orders, manage profiles, and track wishlist items.
 
-Two user flows:
+The project simulates a real-world shopping experience, complete with:
 
+Categories & Subcategories
+
+Product details + supplier details
+
+Cart system
+
+Checkout process with stock update
+
+Order history with delivery date
+
+Search, sorting, filtering
+
+Wishlist
+
+Profile editing
+
+Login system (new + existing user flow)
+
+🏗 Project Structure
+PROJECT1/
+│
+├── CaptainLevi/            ← All .cpp implementation files
+│   ├── FinalMain.cpp
+│   ├── DBFunctions.cpp
+│   ├── Functions.cpp
+│   ├── CartFunctions.cpp
+│   ├── Product.cpp
+│   ├── Customer.cpp
+│   ├── Supplier.cpp
+│   ├── Order.cpp
+│   ├── OrderItem.cpp
+│   ├── login.cpp
+│   └── Date.cpp
+│
+├── MissionPlan/            ← All headers
+│   ├── DBFunctions.h
+│   ├── Functions.h
+│   ├── CartFunctions.h
+│   ├── Product.h
+│   ├── Customer.h
+│   ├── Supplier.h
+│   ├── Order.h
+│   ├── OrderItem.h
+│   ├── login.h
+│   └── Date.h
+│
+└── README.md
+
+🧪 Database Structure (MySQL)
+Database Name: PROJECT1
+Tables Used
+1. PRODUCT
+Product_ID (PK)
+Product_Name
+Category
+Subcategory
+Price
+Stock_Qtn
+Company_name
+ExpiryDate
+SID (FK → Supplier.SID)
+
+2. CUSTOMER_DETAILS
+ID (PK)
+Name
+Contact_Num
+Email
+Address
+
+3. LOGIN
+Email (PK)
+Password
+
+4. Supplier
+SID (PK)
+Sname
+Contact_Num
+Email
+Address
+
+5. Cart
+CartID (PK)
+Customer_ID (FK)
+Product_ID (FK)
+Quantity
+
+6. Orders
+OrderID (PK)
+Customer_ID (FK)
+OrderDate
+DeliveryDate
+TotalAmount
+
+7. OrderItems
+ItemID (PK)
+OrderID (FK)
+Product_ID (FK)
+Product_Name
+Price
+Quantity
+Subtotal
+
+8. Wishlist
+WishlistID (PK)
+Customer_ID (FK)
+Product_ID (FK)
+
+🔐 Login Flow
 New User
 
-Creates a login (email + password)
+User chooses New User
 
-Enters customer details (Name, Contact, Address)
+Creates login (email + password)
 
-System auto-detects new Customer ID
+Enters customer details
 
-Redirects to product & cart system
+Customer ID auto-generated
+
+Redirects to main shopping menu
 
 Existing User
 
-Logs in using stored email & password
+Enters email & password
 
-System fetches Customer ID from database
+Credentials verified
 
-Redirects to products & cart
+Customer ID loaded
 
-Password validation rules:
+Redirects to main menu
 
-Minimum 8 characters
+🛍 Customer Features
+🔸 1. Category & Subcategory Browsing
 
-Must include uppercase, lowercase, digit & special character
+Dynamic loading of categories
 
-Stored in uppercase LOGIN table (case-sensitive on Linux).
+For each category → subcategories
 
-🔹 Customer Management
+For each subcategory → products shown with numbering
 
-Ability to add customer details:
+Cleaner UI with colored formatting
 
-Name
+🔸 2. Product Details
 
-Contact Number
-
-Email
-
-Address
-
-Stored in CUSTOMER_DETAILS table.
-
-Auto-increment ID retrieval using LAST_INSERT_ID().
-
-🔹 Product Browsing & Selection
-
-Products are loaded dynamically from the PRODUCT table, supporting:
-
-List all categories
-
-List subcategories
-
-List products by category/subcategory
-
-Detailed product view:
-
-Name
-
-Category
-
-Subcategory
-
-Company
+Detailed view
 
 Stock
 
 Price
 
-Expiry Date
+Expiry
 
-Supplier information fetched from Supplier table based on SID.
+Brand
 
-🔹 Shopping Cart System
+Supplier info (shown on request)
 
-Each user has a unique cart linked via Customer_ID.
+🔸 3. Cart System
 
-Cart supports:
-
-Add to cart
+Add to Cart
 
 Update quantity
 
@@ -96,115 +175,126 @@ View cart
 
 Checkout
 
-Checkout:
+After checkout:
 
-Auto reduces stock from PRODUCT table
+Stock reduced automatically
 
-Clears cart after completion
+Order created
 
-🏗️ Project Architecture
-📁 Folder Structure
-PROJECT1/
-│
-├── CaptainLevi/              # All .cpp files
-│   ├── FinalMain.cpp         # Main application flow
-│   ├── Customer.cpp
-│   ├── Product.cpp
-│   ├── Supplier.cpp
-│   ├── Date.cpp
-│   ├── DBFunctions.cpp
-│   ├── Functions.cpp
-│   ├── login.cpp
-│   ├── Cart.cpp
-│   ├── CartFunctions.cpp
-│
-├── MissionPlan/              # All .h header files
-│   ├── Customer.h
-│   ├── Product.h
-│   ├── Supplier.h
-│   ├── Date.h
-│   ├── DBFunctions.h
-│   ├── Functions.h
-│   ├── login.h
-│   ├── Cart.h
-│   ├── CartFunctions.h
-│
-└── README.md                 # This file
+Cart cleared
 
-🛢️ Database Schema (MySQL)
-1. LOGIN
-Column	Type	Notes
-Email	VARCHAR(255)	Primary Key
-Password	VARCHAR(255)	Plain text (for now)
-2. CUSTOMER_DETAILS
-Column	Type	Notes
-ID	INT	Auto-increment PK
-Name	VARCHAR(50)	
-Contact_Num	VARCHAR(20)	
-Email	VARCHAR(255)	FK → LOGIN.Email
-Address	VARCHAR(255)	
-3. PRODUCT
-Column	Type
-Product_ID	INT PK
-Product_Name	VARCHAR(255)
-Category	VARCHAR(255)
-Subcategory	VARCHAR(255)
-Price	DOUBLE
-Stock_Qtn	INT
-Company_name	VARCHAR(255)
-ExpiryDate	DATE
-SID	INT FK → Supplier
-4. Supplier
-Column	Type
-SID	INT PK
-Sname	VARCHAR(255)
-Contact_Num	VARCHAR(20)
-Email	VARCHAR(255)
-Address	VARCHAR(255)
-5. Cart
-Column	Type	Notes
-Cart_ID	INT PK	Auto-increment
-Customer_ID	INT FK	→ CUSTOMER_DETAILS.ID
-Product_ID	INT FK	→ PRODUCT.Product_ID
-Quantity	INT	
-AddedDate	DATETIME	Defaults to CURRENT_TIMESTAMP
-🧠 Key Logic Implemented
-✔ New User Workflow
-Enter email → Create login record → Enter customer details → Auto get CustomerID → Category Menu
+🔸 4. Orders & Order History
 
-✔ Existing User Workflow
-Login → Authenticate → Fetch customerID → Category Menu
+Every checkout creates:
 
-✔ Cart Workflow
-Add product → Check stock → If exists update quantity → Checkout reduces stock → Clear cart
+An entry in Orders table
 
-⚙️ Compiling & Running
+Corresponding items in OrderItems table
+
+Order date
+
+Delivery date = OrderDate + 4 days
+
+My Orders:
+
+Shows list of past orders
+
+User selects which order to view
+
+Detailed view contains:
+
+Items
+
+Total amount
+
+Delivery date
+
+Product names, quantities, prices
+
+🔸 5. Wishlist
+
+Add any product to wishlist
+
+Remove from wishlist
+
+View wishlist anytime
+
+🔸 6. Search System
+
+You can search by:
+
+Product name
+
+Category
+
+Company/Brand
+
+Price range
+
+Displays matching products as numbered list.
+
+🔸 7. Sorting
+
+Sorting options inside product list:
+
+Price: Low → High
+
+Price: High → Low
+
+Name: A → Z
+
+Stock: High → Low
+
+🔸 8. Filtering
+
+Filters available:
+
+Filter by Company/Brand
+
+Filter by Price Range
+
+🔸 9. Profile Management
+
+Inside "My Profile":
+
+View personal details
+
+Edit name
+
+Edit address
+
+Edit contact number
+
+Change password (with current password verification)
+
+View all orders
+
+🖥 How to Compile & Run
 Compile
-
-Run inside the PROJECT1 folder:
-
-g++ -o final CaptainLevi/*.cpp -I/usr/include/mysql-cppconn-8/ -lmysqlcppconn
+g++ -o final CaptainLevi/*.cpp -I./MissionPlan -I/usr/include/mysql-cppconn-8/ -lmysqlcppconn
 
 Run
 ./final
 
-💡 Future Enhancements (Planned / Optional)
+🎯 Future Planned Features
 
-Admin panel (add/update/delete products)
+(Not implemented yet)
 
-Order history system
+Admin Dashboard
 
-Profile update system
+Product management (add/update/delete)
 
-Product search
+Sales report / analytics
 
-Sort by price, stock, brand
+Advanced return/cancellation policy
 
-Coupon/discount logic
+Desktop application (GUI)
 
-Password hashing (bcrypt)
+📝 Conclusion
 
-PDF invoice generation
+PROJECT1 is a complete modular backend for a console-based e-commerce system.
+It includes almost every core feature of real-world online shopping platforms — implemented using C++, MySQL, and clean modular architecture.
+
 
 👤 Author
 

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include "DBFunctions.h"
 
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
@@ -244,7 +245,7 @@ bool updateCartQuantity(sql::Connection* con, int customer_id, int product_id, i
 // ------------------------------------------------------
 bool checkoutCart(sql::Connection* con, int customer_id) {
     try {
-        // Step 1: Load all cart items
+        // Show receipt
         sql::PreparedStatement* pstmt =
             con->prepareStatement(
                 "SELECT c.Product_ID, c.Quantity, p.Product_Name, p.Price "
@@ -252,25 +253,20 @@ bool checkoutCart(sql::Connection* con, int customer_id) {
                 "WHERE c.Customer_ID = ?"
             );
         pstmt->setInt(1, customer_id);
-
         sql::ResultSet* res = pstmt->executeQuery();
 
-        vector<int> productIds;
-        vector<int> qtys;
-        vector<double> prices;
-        vector<string> names;
-
         double total = 0;
+        vector<int> pids;
+        vector<int> qtys;
+        vector<string> names;
+        vector<double> prices;
 
         cout << "\n================= RECEIPT =================\n";
-
         cout << left << setw(10) << "PID"
              << setw(30) << "Product Name"
              << setw(10) << "Qty"
              << setw(10) << "Price"
-             << setw(12) << "Subtotal"
-             << endl;
-
+             << setw(12) << "Subtotal" << endl;
         cout << string(75, '-') << endl;
 
         while (res->next()) {
@@ -284,13 +280,12 @@ bool checkoutCart(sql::Connection* con, int customer_id) {
                  << setw(30) << pname
                  << setw(10) << qty
                  << setw(10) << price
-                 << setw(12) << subtotal
-                 << endl;
+                 << setw(12) << subtotal << endl;
 
-            productIds.push_back(pid);
+            pids.push_back(pid);
             qtys.push_back(qty);
-            prices.push_back(price);
             names.push_back(pname);
+            prices.push_back(price);
 
             total += subtotal;
         }
@@ -302,31 +297,31 @@ bool checkoutCart(sql::Connection* con, int customer_id) {
         delete res;
         delete pstmt;
 
-        // Step 2: Reduce stock
-        sql::Statement* stmt = con->createStatement();
-        stmt->execute(
-            "UPDATE PRODUCT p "
-            "JOIN Cart c ON p.Product_ID = c.Product_ID "
-            "SET p.Stock_Qtn = p.Stock_Qtn - c.Quantity "
-            "WHERE c.Customer_ID = " + to_string(customer_id)
-        );
+        if (pids.empty()) {
+            cout << "⚠️ Your cart is empty.\n";
+            return false;
+        }
 
-        // Step 3: Clear cart
-        stmt->execute("DELETE FROM Cart WHERE Customer_ID = " + to_string(customer_id));
+        // Create Order in DB
+        int createdOrderId = -1;
+        bool ok = createOrderFromCart(con, customer_id, createdOrderId);
 
-        delete stmt;
+        if (!ok) {
+            cout << "❌ Failed to place order.\n";
+            return false;
+        }
 
-        cout << "✅ Checkout completed successfully!\n";
-        cout << "🧾 Your receipt is displayed above.\n";
+        cout << "✅ ORDER PLACED SUCCESSFULLY! Order ID: " << createdOrderId << "\n";
+        cout << "🧾 Receipt shown above.\n";
         cout << "🛒 Your cart is now empty.\n";
 
         return true;
-    }
-    catch (sql::SQLException &e) {
+    } catch (sql::SQLException &e) {
         cerr << "SQL Error in checkoutCart: " << e.what() << endl;
         return false;
     }
 }
+
 
 // ------------------------------------------------------
 // CART MENU

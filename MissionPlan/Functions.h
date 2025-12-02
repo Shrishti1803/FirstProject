@@ -22,5 +22,19 @@ void handleSubcategoryFlow(sql::Connection *con,
                            const std::string &category,
                            int customerId);
 void runCategoryMenu(sql::Connection *con, int customerId);
+void runSearchMenu(sql::Connection* con, int customerId);
+
+// My Profile / Orders UI (B3)
+void showMyProfile(sql::Connection* con, int customerId, const std::string &loggedInEmail);
+void showMyOrders(sql::Connection* con, int customerId);
+void showOrderDetails(sql::Connection* con, int orderId, int orderNumber);
+void editProfileMenu(sql::Connection* con, int customerId, const std::string &loggedInEmail);
+
+// My Profile + Orders UI
+void showMyProfile(sql::Connection* con, int customerId, const std::string &loggedInEmail);
+void editProfileMenu(sql::Connection* con, int customerId, const std::string &loggedInEmail);
+void showMyOrders(sql::Connection* con, int customerId);
+void showOrderDetails(sql::Connection* con, int orderId, int orderNumber);
+
 
 #endif

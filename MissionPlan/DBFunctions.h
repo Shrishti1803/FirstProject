@@ -13,6 +13,8 @@
 #include <cppconn/statement.h>
 #include <cppconn/prepared_statement.h>
 #include "Customer.h"
+#include "Order.h"
+#include "OrderItem.h"
 
 
 using namespace std;
@@ -49,5 +51,51 @@ int getLastInsertedCustomerID(sql::Connection* con);
 int getLastInsertedCustomerID(sql::Connection* con);
 int getCustomerIdByEmail(sql::Connection* con, const std::string& email);
 int getCustomerIdByEmail(sql::Connection* con, const std::string& email);
+
+// Creates an order from the cart
+bool createOrderFromCart(sql::Connection* con, int customerId, int &orderId);
+
+// Load all orders of a customer (most recent first)
+std::vector<Order> loadOrdersForCustomer(sql::Connection* con, int customerId);
+
+// Load all items in a particular order
+std::vector<OrderItem> loadOrderItems(sql::Connection* con, int orderId);
+
+// Fetch a Customer by ID
+bool getCustomerById(sql::Connection* con, int customerId, Customer &outCustomer);
+
+// Update customer details (Name, Contact_Num, Address) by ID
+bool updateCustomerDetails(sql::Connection* con, const Customer &c);
+
+// Update password for a login email
+bool updateLoginPassword(sql::Connection* con, const std::string &email, const std::string &newPassword);
+
+// create order from cart; sets created orderId
+bool createOrderFromCart(sql::Connection* con, int customerId, int &createdOrderId);
+
+// load orders (most recent first)
+std::vector<Order> loadOrdersForCustomer(sql::Connection* con, int customerId);
+
+// load order items
+std::vector<OrderItem> loadOrderItems(sql::Connection* con, int orderId);
+
+// customer helpers
+bool getCustomerById(sql::Connection* con, int customerId, Customer &outCustomer);
+bool updateCustomerDetails(sql::Connection* con, const Customer &c);
+bool updateLoginPassword(sql::Connection* con, const std::string &email, const std::string &newPassword);
+
+// ---- PRODUCT SEARCH ----
+vector<int> searchProductsByName(sql::Connection* con, const string &name);
+vector<int> searchProductsByCompany(sql::Connection* con, const string &company);
+vector<int> searchProductsByCategory(sql::Connection* con, const string &category);
+vector<int> searchProductsByPriceRange(sql::Connection* con, double minPrice, double maxPrice);
+
+vector<int> sortProductsByPriceAsc(sql::Connection*, const string&, const string&);
+vector<int> sortProductsByPriceDesc(sql::Connection*, const string&, const string&);
+vector<int> sortProductsByName(sql::Connection*, const string&, const string&);
+vector<int> sortProductsByStock(sql::Connection*, const string&, const string&);
+
+vector<int> filterProductsByCompany(sql::Connection*, const string&, const string&, const string&);
+vector<int> filterProductsByPriceRange(sql::Connection*, const string&, const string&, float, float);
 
 #endif // DBFUNCTIONS_H
