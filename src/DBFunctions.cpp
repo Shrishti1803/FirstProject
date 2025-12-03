@@ -17,8 +17,8 @@ sql::Connection* createConnection() {
     try {
         driver = sql::mysql::get_mysql_driver_instance();
         // update username/password as necessary
-        con = driver->connect("tcp://127.0.0.1:3306", "root", "shrishti@2006"); //give the mysql password 
-        con->setSchema("PROJECT1"); //make sure all the required tables are in this database
+        con = driver->connect("tcp://127.0.0.1:3306", "root", "Password"); //give the mysql password 
+        con->setSchema("DB Name"); //make sure all the required tables are in this database
     } catch (sql::SQLException &e) {
         cout << "Unable to connect to DB: " << e.what() << endl;
         throw;
