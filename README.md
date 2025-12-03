@@ -1,301 +1,258 @@
-📦 PROJECT1 – Console-Based E-Commerce Application
+# 🛒 PROJECT1 — C++ Console E-Commerce Application  
+A fully functional, production-style **E-Commerce Console Application** written in **C++** with **MySQL Database Integration**.  
+This project includes a complete customer system and is now evolving into a full admin panel.
 
-A complete mini-ecommerce system built using C++, MySQL Connector/C++, and modular OOP design.
+---
 
-🚀 Overview
+## 🚀 Project Overview
+PROJECT1 is a modular e-commerce backend built entirely in **C++**, integrating with **MySQL** for persistent storage.  
+The application includes:
 
-PROJECT1 is a fully interactive console-based e-commerce system that allows customers to browse products, add items to cart, place orders, manage profiles, and track wishlist items.
+- Customer authentication  
+- Product browsing (category → subcategory)
+- Full-text search  
+- Sorting & filtering  
+- Wishlist  
+- Cart system  
+- Checkout & orders  
+- Address management  
+- Supplier linking  
+- Professional UI (terminal-based)
 
-The project simulates a real-world shopping experience, complete with:
+The project follows a **clean folder structure** with `src/` for source files and `include/` for headers.
 
-Categories & Subcategories
+---
 
-Product details + supplier details
+## 🧩 Features (Customer Side)
 
-Cart system
+### 🔐 **1. Authentication System**
+- New customer registration  
+- Secure login  
+- Password verification  
+- Profile editing (name, contact, address, password)
 
-Checkout process with stock update
+---
 
-Order history with delivery date
+### 🛍 **2. Product Browsing**
+- Category → Subcategory navigation  
+- Displays product lists in clean, formatted table view  
+- Shows:
+  - Product ID  
+  - Product Name  
+  - Price  
+  - Stock  
+  - Expiry Date  
+  - Supplier Name  
 
-Search, sorting, filtering
+---
 
-Wishlist
+### 🔎 **3. Search System**
+Search by:
+- Product Name  
+- Brand/Company  
+- Category  
+- Price Range  
 
-Profile editing
+All results displayed with complete product details.
 
-Login system (new + existing user flow)
+---
 
-🏗 Project Structure
+### ↕ **4. Sorting**
+Sort products by:
+- Price (Low → High)  
+- Price (High → Low)  
+- Name (A → Z)  
+- Stock (High → Low)
+
+---
+
+### 🎯 **5. Filters**
+Filter products by:
+- Company/Brand  
+- Price Range  
+
+---
+
+### 💖 **6. Wishlist System**
+- Add products to wishlist  
+- Remove items  
+- View wishlist with full details
+
+---
+
+### 🛒 **7. Cart System**
+- Add to cart  
+- Update quantity  
+- Remove items  
+- Auto-subtotal calculation  
+- View cart summary  
+- Stock verification  
+- Cart clearing on checkout  
+
+---
+
+### 🚚 **8. Address Management**
+- Add new address  
+- View saved addresses  
+- Delete address  
+- Choose delivery address during checkout  
+- Supports multiple addresses per customer  
+
+---
+
+### 📦 **9. Orders System**
+- Place orders  
+- Auto delivery date generation  
+- View past orders  
+- View order details + item breakdown  
+- Order total calculation  
+
+---
+
+## 📁 Folder Structure
+
 PROJECT1/
 │
-├── CaptainLevi/            ← All .cpp implementation files
-│   ├── FinalMain.cpp
-│   ├── DBFunctions.cpp
-│   ├── Functions.cpp
-│   ├── CartFunctions.cpp
-│   ├── Product.cpp
-│   ├── Customer.cpp
-│   ├── Supplier.cpp
-│   ├── Order.cpp
-│   ├── OrderItem.cpp
-│   ├── login.cpp
-│   └── Date.cpp
+├── src/ # All .cpp implementation files
+│ ├── FinalMain.cpp
+│ ├── Functions.cpp
+│ ├── DBFunctions.cpp
+│ ├── Product.cpp
+│ ├── Customer.cpp
+│ ├── WishlistFunctions.cpp
+│ ├── CartFunctions.cpp
+│ ├── Address.cpp
+│ ├── Order.cpp
+│ └── (other modules)
 │
-├── MissionPlan/            ← All headers
-│   ├── DBFunctions.h
-│   ├── Functions.h
-│   ├── CartFunctions.h
-│   ├── Product.h
-│   ├── Customer.h
-│   ├── Supplier.h
-│   ├── Order.h
-│   ├── OrderItem.h
-│   ├── login.h
-│   └── Date.h
+├── include/ # All .h header files
+│ ├── Functions.h
+│ ├── DBFunctions.h
+│ ├── Product.h
+│ ├── Customer.h
+│ ├── WishlistFunctions.h
+│ ├── CartFunctions.h
+│ ├── Address.h
+│ ├── Order.h
+│ └── login.h
+|
+|── final 
 │
 └── README.md
 
-🧪 Database Structure (MySQL)
-Database Name: PROJECT1
-Tables Used
-1. PRODUCT
-Product_ID (PK)
-Product_Name
-Category
-Subcategory
-Price
-Stock_Qtn
-Company_name
-ExpiryDate
-SID (FK → Supplier.SID)
 
-2. CUSTOMER_DETAILS
-ID (PK)
-Name
-Contact_Num
-Email
-Address
+---
 
-3. LOGIN
-Email (PK)
-Password
+## 🛠 Technology Stack
 
-4. Supplier
-SID (PK)
-Sname
-Contact_Num
-Email
-Address
+### **Languages**
+- C++17 / C++20  
+- SQL (MySQL)
 
-5. Cart
-CartID (PK)
-Customer_ID (FK)
-Product_ID (FK)
-Quantity
+### **Database**
+- MySQL 8.x  
+- Tables include:
+  - PRODUCT  
+  - CUSTOMER_DETAILS  
+  - Supplier  
+  - Wishlist  
+  - Cart  
+  - Orders  
+  - OrderItems  
+  - Addresses  
+  - LOGIN  
 
-6. Orders
-OrderID (PK)
-Customer_ID (FK)
-OrderDate
-DeliveryDate
-TotalAmount
+### **Libraries**
+- MySQL Connector/C++ (`mysql-cppconn-8`)  
+- Standard C++ STL  
 
-7. OrderItems
-ItemID (PK)
-OrderID (FK)
-Product_ID (FK)
-Product_Name
-Price
-Quantity
-Subtotal
+---
 
-8. Wishlist
-WishlistID (PK)
-Customer_ID (FK)
-Product_ID (FK)
+## 🔧 How to Build & Run
 
-🔐 Login Flow
-New User
+### **1. Install MySQL Connector/C++**
+Ubuntu:
+```bash
+sudo apt install libmysqlcppconn-dev
 
-User chooses New User
 
-Creates login (email + password)
+2. Compile the project
 
-Enters customer details
+From project root:
 
-Customer ID auto-generated
+g++ -o final src/*.cpp -I./include -I/usr/include/mysql-cppconn-8/ -lmysqlcppconn
 
-Redirects to main shopping menu
-
-Existing User
-
-Enters email & password
-
-Credentials verified
-
-Customer ID loaded
-
-Redirects to main menu
-
-🛍 Customer Features
-🔸 1. Category & Subcategory Browsing
-
-Dynamic loading of categories
-
-For each category → subcategories
-
-For each subcategory → products shown with numbering
-
-Cleaner UI with colored formatting
-
-🔸 2. Product Details
-
-Detailed view
-
-Stock
-
-Price
-
-Expiry
-
-Brand
-
-Supplier info (shown on request)
-
-🔸 3. Cart System
-
-Add to Cart
-
-Update quantity
-
-Remove item
-
-View cart
-
-Checkout
-
-After checkout:
-
-Stock reduced automatically
-
-Order created
-
-Cart cleared
-
-🔸 4. Orders & Order History
-
-Every checkout creates:
-
-An entry in Orders table
-
-Corresponding items in OrderItems table
-
-Order date
-
-Delivery date = OrderDate + 4 days
-
-My Orders:
-
-Shows list of past orders
-
-User selects which order to view
-
-Detailed view contains:
-
-Items
-
-Total amount
-
-Delivery date
-
-Product names, quantities, prices
-
-🔸 5. Wishlist
-
-Add any product to wishlist
-
-Remove from wishlist
-
-View wishlist anytime
-
-🔸 6. Search System
-
-You can search by:
-
-Product name
-
-Category
-
-Company/Brand
-
-Price range
-
-Displays matching products as numbered list.
-
-🔸 7. Sorting
-
-Sorting options inside product list:
-
-Price: Low → High
-
-Price: High → Low
-
-Name: A → Z
-
-Stock: High → Low
-
-🔸 8. Filtering
-
-Filters available:
-
-Filter by Company/Brand
-
-Filter by Price Range
-
-🔸 9. Profile Management
-
-Inside "My Profile":
-
-View personal details
-
-Edit name
-
-Edit address
-
-Edit contact number
-
-Change password (with current password verification)
-
-View all orders
-
-🖥 How to Compile & Run
-Compile
-g++ -o final CaptainLevi/*.cpp -I./MissionPlan -I/usr/include/mysql-cppconn-8/ -lmysqlcppconn
-
-Run
+3. Run
 ./final
 
-🎯 Future Planned Features
-
-(Not implemented yet)
-
-Admin Dashboard
-
-Product management (add/update/delete)
-
-Sales report / analytics
-
-Advanced return/cancellation policy
-
-Desktop application (GUI)
-
-📝 Conclusion
-
-PROJECT1 is a complete modular backend for a console-based e-commerce system.
-It includes almost every core feature of real-world online shopping platforms — implemented using C++, MySQL, and clean modular architecture.
 
 
-👤 Author
+📌 Database Requirements
+Before running, ensure you have the required tables:
+CUSTOMER_DETAILS
+PRODUCT
+Supplier
+Wishlist
+Cart
+Address
+Orders
+OrderItems
+LOGIN
 
-Shrishti —C++ with MySQL
+Your schema includes:
+Product Categories & Subcategories
+400 seeded products
+20 suppliers
+Login table for customer auth
+
+
+🧱 Architecture Overview
+Customer Flow
+Start → Login/Register → Category Menu → Subcategory → Product Details  
+     → Add to Cart/Wishlist → Cart → Checkout → Orders → Logout
+
+Backend Modules
+DBFunctions.cpp: All SQL operations
+Functions.cpp: UI logic, menus, display tables
+Order.cpp: Order & order-item handling
+Address.cpp: Multi-address system
+WishlistFunctions.cpp: Wishlist logic
+CartFunctions.cpp: Cart operations
+
+
+📘 Future Scope (Planned)
+
+🔐 Admin Panel
+Admin login
+Product management (CRUD)
+Supplier management
+Category/subcategory management
+View all orders
+Update order status
+Customer management
+
+🌐 Web Version
+Backend using Drogon (C++ Web Framework)
+Frontend using React.js
+REST APIs
+JSON responses
+
+
+✨ Why This Project Stands Out
+3500+ lines of organized, modular C++ code
+Professional folder structure
+Real-world e-commerce logic
+SQL-backed persistence
+Clean UI with ANSI formatting
+Scalable architecture
+Perfect for major college projects & resumes
+
+
+👩‍💻 Author
+** Shrishti **
+BCA Student & Developer
+Passionate about C++, Databases, and real-world software engineering.
+
+
+⭐ Support
+If you like this project, feel free to ⭐ star the repository on GitHub!
