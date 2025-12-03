@@ -15,6 +15,7 @@
 #include "Customer.h"
 #include "Order.h"
 #include "OrderItem.h"
+#include "Address.h"
 
 
 using namespace std;
@@ -71,7 +72,7 @@ bool updateCustomerDetails(sql::Connection* con, const Customer &c);
 bool updateLoginPassword(sql::Connection* con, const std::string &email, const std::string &newPassword);
 
 // create order from cart; sets created orderId
-bool createOrderFromCart(sql::Connection* con, int customerId, int &createdOrderId);
+bool createOrderFromCart(sql::Connection* con, int customerId, int addressId, int &orderId);
 
 // load orders (most recent first)
 std::vector<Order> loadOrdersForCustomer(sql::Connection* con, int customerId);
@@ -97,5 +98,10 @@ vector<int> sortProductsByStock(sql::Connection*, const string&, const string&);
 
 vector<int> filterProductsByCompany(sql::Connection*, const string&, const string&, const string&);
 vector<int> filterProductsByPriceRange(sql::Connection*, const string&, const string&, float, float);
+void displayCompactProductRow(sql::Connection* con, int productId, int index);
+bool addAddress(sql::Connection* con, int customerId, const string &line, const string &city, const string &state, const string &pincode);
+vector<pair<int,string>> loadAddresses(sql::Connection* con, int customerId);
+bool deleteAddress(sql::Connection* con, int addressId);
+vector<Address> loadFullAddresses(sql::Connection* con, int customerId);
 
 #endif // DBFUNCTIONS_H

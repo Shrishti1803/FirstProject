@@ -1,8 +1,12 @@
+// CartFunctions.cpp
 #include "CartFunctions.h"
+#include "Cart.h"
+#include "DBFunctions.h"
+#include "Functions.h"
+
 #include <iostream>
 #include <iomanip>
 #include <limits>
-#include "DBFunctions.h"
 
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
@@ -11,9 +15,9 @@
 
 using namespace std;
 
-// ------------------------------------------------------
+// ======================================================================
 // ADD TO CART
-// ------------------------------------------------------
+// ======================================================================
 bool addToCart(sql::Connection* con, int customer_id, int product_id, int qty) {
     if (!con) {
         cout << "❌ No active DB connection.\n";
@@ -23,8 +27,6 @@ bool addToCart(sql::Connection* con, int customer_id, int product_id, int qty) {
         cout << "❌ Quantity must be positive.\n";
         return false;
     }
-
-    cout << "[DEBUG] addToCart received customer_id = " << customer_id << endl;
 
     try {
         sql::PreparedStatement* pstmt = nullptr;
@@ -63,7 +65,7 @@ bool addToCart(sql::Connection* con, int customer_id, int product_id, int qty) {
 
             int newQty = existing + qty;
 
-            // Check stock for combined qty
+            // Check stock limit
             pstmt = con->prepareStatement("SELECT Stock_Qtn FROM PRODUCT WHERE Product_ID = ?");
             pstmt->setInt(1, product_id);
             res = pstmt->executeQuery();
@@ -83,7 +85,6 @@ bool addToCart(sql::Connection* con, int customer_id, int product_id, int qty) {
             pstmt->setInt(1, newQty);
             pstmt->setInt(2, customer_id);
             pstmt->setInt(3, product_id);
-
             int rows = pstmt->executeUpdate();
             delete pstmt;
 
@@ -94,7 +95,7 @@ bool addToCart(sql::Connection* con, int customer_id, int product_id, int qty) {
             return false;
 
         } else {
-            // Insert new item into cart
+            // Insert new item
             delete res; delete pstmt;
 
             pstmt = con->prepareStatement(
@@ -121,10 +122,10 @@ bool addToCart(sql::Connection* con, int customer_id, int product_id, int qty) {
     }
 }
 
-// ------------------------------------------------------
+// ======================================================================
 // VIEW CART
-// ------------------------------------------------------
-std::vector<Cart> viewCart(sql::Connection* con, int customer_id) {
+// ======================================================================
+vector<Cart> viewCart(sql::Connection* con, int customer_id) {
     vector<Cart> cartItems;
 
     try {
@@ -181,9 +182,9 @@ std::vector<Cart> viewCart(sql::Connection* con, int customer_id) {
     return cartItems;
 }
 
-// ------------------------------------------------------
-// REMOVE FROM CART
-// ------------------------------------------------------
+// ======================================================================
+// REMOVE ITEM FROM CART
+// ======================================================================
 bool removeFromCart(sql::Connection* con, int customer_id, int product_id) {
     try {
         sql::PreparedStatement* pstmt =
@@ -207,9 +208,9 @@ bool removeFromCart(sql::Connection* con, int customer_id, int product_id) {
     }
 }
 
-// ------------------------------------------------------
+// ======================================================================
 // UPDATE CART QUANTITY
-// ------------------------------------------------------
+// ======================================================================
 bool updateCartQuantity(sql::Connection* con, int customer_id, int product_id, int newQty) {
     if (newQty <= 0)
         return removeFromCart(con, customer_id, product_id);
@@ -240,12 +241,19 @@ bool updateCartQuantity(sql::Connection* con, int customer_id, int product_id, i
     }
 }
 
-// ------------------------------------------------------
-// CHECKOUT (reduces stock + clears cart)
-// ------------------------------------------------------
+// ======================================================================
+// SHOW CART SUMMARY (Checkout Helper)
+// ======================================================================
+void showCartSummary(sql::Connection* con, int customer_id) {
+    viewCart(con, customer_id);
+}
+
+// ======================================================================
+// CHECKOUT (with address selection)
+// ======================================================================
 bool checkoutCart(sql::Connection* con, int customer_id) {
     try {
-        // Show receipt
+        // Load items
         sql::PreparedStatement* pstmt =
             con->prepareStatement(
                 "SELECT c.Product_ID, c.Quantity, p.Product_Name, p.Price "
@@ -256,9 +264,7 @@ bool checkoutCart(sql::Connection* con, int customer_id) {
         sql::ResultSet* res = pstmt->executeQuery();
 
         double total = 0;
-        vector<int> pids;
-        vector<int> qtys;
-        vector<string> names;
+        vector<int> pids, qtys;
         vector<double> prices;
 
         cout << "\n================= RECEIPT =================\n";
@@ -284,7 +290,6 @@ bool checkoutCart(sql::Connection* con, int customer_id) {
 
             pids.push_back(pid);
             qtys.push_back(qty);
-            names.push_back(pname);
             prices.push_back(price);
 
             total += subtotal;
@@ -302,30 +307,50 @@ bool checkoutCart(sql::Connection* con, int customer_id) {
             return false;
         }
 
-        // Create Order in DB
-        int createdOrderId = -1;
-        bool ok = createOrderFromCart(con, customer_id, createdOrderId);
-
-        if (!ok) {
-            cout << "❌ Failed to place order.\n";
+        // ADDRESS SELECTION
+        int addressId = selectDeliveryAddress(con, customer_id);
+        if (addressId == -1) {
+            cout << "\nCheckout cancelled.\n";
+            pressEnterToContinue();
             return false;
         }
 
-        cout << "✅ ORDER PLACED SUCCESSFULLY! Order ID: " << createdOrderId << "\n";
-        cout << "🧾 Receipt shown above.\n";
-        cout << "🛒 Your cart is now empty.\n";
+        // Confirm
+        cout << "\nConfirm order? (1 = Yes, 0 = No): ";
+        int confirm;
+        cin >> confirm;
 
+        if (confirm == 0) {
+            cout << "\nOrder cancelled.\n";
+            pressEnterToContinue();
+            return false;
+        }
+
+        // Create order
+        int orderId = -1;
+        bool ok = createOrderFromCart(con, customer_id, addressId, orderId);
+
+        if (!ok) {
+            cout << "\n❌ Failed to place order.\n";
+            pressEnterToContinue();
+            return false;
+        }
+
+        cout << "\n✅ ORDER PLACED SUCCESSFULLY!\n";
+        cout << "🧾 ORDER ID: " << orderId << endl;
+        cout << "🛒 Cart cleared.\n";
+        pressEnterToContinue();
         return true;
-    } catch (sql::SQLException &e) {
+    }
+    catch (sql::SQLException &e) {
         cerr << "SQL Error in checkoutCart: " << e.what() << endl;
         return false;
     }
 }
 
-
-// ------------------------------------------------------
+// ======================================================================
 // CART MENU
-// ------------------------------------------------------
+// ======================================================================
 void runCartMenu(sql::Connection* con, int customer_id) {
     while (true) {
         cout << "\n========== CART MENU ==========\n";

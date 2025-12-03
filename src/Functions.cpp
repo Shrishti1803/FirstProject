@@ -4,6 +4,7 @@
 #include "CartFunctions.h"
 #include "login.h"
 #include "WishlistFunctions.h"
+#include "Address.h"
 
 #include <iostream>
 #include <vector>
@@ -156,7 +157,7 @@ void handleProductsFlow(sql::Connection *con, const string &category, const stri
         clearScreen();
         printFancyHeader("PRODUCTS — " + category + " → " + subcategory);
 
-        // Load default product list
+        // Load default list
         vector<int> productIds = showNumberedProducts(con, category, subcategory);
 
         if (productIds.empty()) {
@@ -173,16 +174,12 @@ void handleProductsFlow(sql::Connection *con, const string &category, const stri
 
         int ch = getIntInput("Enter choice: ");
 
-        // ------------------------------
-        // BACK
-        // ------------------------------
+        // -------------------- BACK --------------------
         if (ch == 0) {
             back = true;
         }
 
-        // ------------------------------
-        // VIEW PRODUCT DETAILS
-        // ------------------------------
+        // -------------------- VIEW PRODUCT DETAILS --------------------
         else if (ch == 1) {
             int num = getIntInput("Enter item number: ");
 
@@ -195,9 +192,7 @@ void handleProductsFlow(sql::Connection *con, const string &category, const stri
             }
         }
 
-        // ------------------------------
-        // SORT PRODUCTS
-        // ------------------------------
+        // -------------------- SORT PRODUCTS --------------------
         else if (ch == 2) {
             clearScreen();
             printFancyHeader("SORT PRODUCTS");
@@ -209,8 +204,8 @@ void handleProductsFlow(sql::Connection *con, const string &category, const stri
             cout << "0) Back\n";
 
             int s = getIntInput("Choose sorting option: ");
-
             if (s == 0) continue;
+
             if (s == 1)
                 productIds = sortProductsByPriceAsc(con, category, subcategory);
             else if (s == 2)
@@ -222,14 +217,32 @@ void handleProductsFlow(sql::Connection *con, const string &category, const stri
             else {
                 cout << color(ANSI_RED, "Invalid choice.\n");
                 pressEnterToContinue();
+                continue;
             }
 
-            continue; // reload menu with sorted list
+            // ---------- SHOW SORTED RESULTS ----------
+            clearScreen();
+            printFancyHeader("SORTED PRODUCTS");
+
+            cout << left
+                 << setw(6)  << "No."
+                 << setw(10) << "PID"
+                 << setw(30) << "Name"
+                 << setw(10) << "Stock"
+                 << setw(10) << "Price"
+                 << setw(15) << "Expiry"
+                 << setw(20) << "Supplier" << "\n";
+
+            cout << string(110, '-') << "\n";
+
+            for (int i = 0; i < productIds.size(); i++)
+                displayCompactProductRow(con, productIds[i], i + 1);
+
+            pressEnterToContinue();
+            continue;
         }
 
-        // ------------------------------
-        // FILTER PRODUCTS
-        // ------------------------------
+        // -------------------- FILTER PRODUCTS --------------------
         else if (ch == 3) {
             clearScreen();
             printFancyHeader("FILTER PRODUCTS");
@@ -239,10 +252,8 @@ void handleProductsFlow(sql::Connection *con, const string &category, const stri
             cout << "0) Back\n";
 
             int f = getIntInput("Choose filter option: ");
-
             if (f == 0) continue;
 
-            // -------- Filter by Company --------
             if (f == 1) {
                 cout << "Enter company name: ";
                 string comp;
@@ -251,32 +262,53 @@ void handleProductsFlow(sql::Connection *con, const string &category, const stri
 
                 productIds = filterProductsByCompany(con, category, subcategory, comp);
             }
-
-            // -------- Filter by Price Range --------
             else if (f == 2) {
                 float low = getIntInput("Enter minimum price: ");
                 float high = getIntInput("Enter maximum price: ");
-
                 productIds = filterProductsByPriceRange(con, category, subcategory, low, high);
             }
-
             else {
                 cout << color(ANSI_RED, "Invalid choice.\n");
                 pressEnterToContinue();
+                continue;
             }
 
-            continue; // reload menu with filtered list
+            // ---------- SHOW FILTERED RESULTS ----------
+            clearScreen();
+            printFancyHeader("FILTERED PRODUCTS");
+
+            if (productIds.empty()) {
+                cout << color(ANSI_YELLOW, "No products match this filter.\n");
+                pressEnterToContinue();
+                continue;
+            }
+
+            cout << left
+                 << setw(6)  << "No."
+                 << setw(10) << "PID"
+                 << setw(30) << "Name"
+                 << setw(10) << "Stock"
+                 << setw(10) << "Price"
+                 << setw(15) << "Expiry"
+                 << setw(20) << "Supplier" << "\n";
+
+            cout << string(110, '-') << "\n";
+
+            for (int i = 0; i < productIds.size(); i++)
+                displayCompactProductRow(con, productIds[i], i + 1);
+
+            pressEnterToContinue();
+            continue;
         }
 
-        // ------------------------------
-        // INVALID CHOICE
-        // ------------------------------
+        // -------------------- INVALID --------------------
         else {
             cout << color(ANSI_RED, "Invalid choice.\n");
             pressEnterToContinue();
         }
     }
 }
+
 
 // -------------------- SUBCATEGORY MENU --------------------
 void handleSubcategoryFlow(sql::Connection *con, const string &category, int customerId) {
@@ -388,6 +420,7 @@ void showMyProfile(sql::Connection* con, int customerId, const std::string &logg
         cout << "1) View Personal Details\n";
         cout << "2) My Orders\n";
         cout << "3) Edit Profile\n";
+        cout << "4) Manage Addresses\n";
         cout << "0) Back\n";
 
         int ch = getIntInput("Enter: ");
@@ -419,6 +452,10 @@ void showMyProfile(sql::Connection* con, int customerId, const std::string &logg
         else if (ch == 3) {
             editProfileMenu(con, customerId, loggedInEmail);
         }
+        else if (ch == 4) {
+            manageAddresses(con, customerId);
+        }
+
     }
 }
 
@@ -656,9 +693,22 @@ void runSearchMenu(sql::Connection* con, int customerId) {
             continue;
         }
 
+        cout << left
+            << setw(6)  << "No."
+            << setw(10) << "PID"
+            << setw(30) << "Name"
+            << setw(10) << "Stock"
+            << setw(10) << "Price"
+            << setw(15) << "Expiry"
+            << setw(20) << "Supplier"
+            << "\n";
+
+        cout << string(105, '-') << "\n";
+
         for (int i = 0; i < results.size(); ++i) {
-            cout << (i+1) << ") Product ID: " << results[i] << "\n";
+            displayCompactProductRow(con, results[i], i + 1);
         }
+
 
         cout << "\nEnter number to view product, or 0 to go back: ";
         int pick = getIntInput("");
@@ -672,4 +722,123 @@ void runSearchMenu(sql::Connection* con, int customerId) {
 
         productDetailsScreen(results[pick - 1], customerId, con);
     }
+}
+
+void manageAddresses(sql::Connection* con, int customerId) {
+    while (true) {
+        clearScreen();
+        printFancyHeader("MANAGE ADDRESSES");
+
+        cout << "1) Add New Address\n";
+        cout << "2) View Saved Addresses\n";
+        cout << "3) Delete Address\n";
+        cout << "0) Back\n";
+
+        int ch = getIntInput("Enter option: ");
+        if (ch == 0) return;
+
+        // ----------------- ADD NEW ADDRESS -----------------
+        if (ch == 1) {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // FIX INPUT
+
+            string line, city, state, pin;
+
+            cout << "Enter Address Line: ";
+            getline(cin, line);
+
+            cout << "City: ";
+            getline(cin, city);
+
+            cout << "State: ";
+            getline(cin, state);
+
+            cout << "Pincode: ";
+            getline(cin, pin);
+
+            bool ok = addAddress(con, customerId, line, city, state, pin);
+
+            if (ok) cout << color(ANSI_GREEN, "\n✔ Address added.\n");
+            else    cout << color(ANSI_RED, "\n❌ Failed to add address.\n");
+
+            pressEnterToContinue();
+        }
+
+        // ----------------- VIEW SAVED ADDRESSES -----------------
+        else if (ch == 2) {
+            vector<pair<int,string>> addrs = loadAddresses(con, customerId);
+
+            clearScreen();
+            printFancyHeader("SAVED ADDRESSES");
+
+            if (addrs.empty()) {
+                cout << color(ANSI_YELLOW, "No saved addresses.\n");
+            } else {
+                for (int i = 0; i < addrs.size(); i++) {
+                    cout << (i+1) << ") " 
+                         << addrs[i].second
+                         << " (ID: " << addrs[i].first << ")\n";
+                }
+            }
+            pressEnterToContinue();
+        }
+
+        // ----------------- DELETE ADDRESS -----------------
+        else if (ch == 3) {
+            int id = getIntInput("Enter Address ID to delete (0 to cancel): ");
+            if (id == 0) continue;
+
+            bool ok = deleteAddress(con, id);
+
+            if (ok) cout << color(ANSI_GREEN, "✔ Address deleted.\n");
+            else    cout << color(ANSI_RED, "❌ Failed. Check ID.\n");
+
+            pressEnterToContinue();
+        }
+
+        else {
+            cout << color(ANSI_RED, "Invalid choice.\n");
+            pressEnterToContinue();
+        }
+    }
+}
+
+int selectDeliveryAddress(sql::Connection* con, int customerId) {
+    clearScreen();
+    printFancyHeader("SELECT DELIVERY ADDRESS");
+
+    vector<Address> addresses = loadFullAddresses(con, customerId);
+
+    if (addresses.empty()) {
+        cout << color(ANSI_RED, "❌ No saved addresses.\n");
+        cout << "Add a new address in My Profile → Manage Addresses.\n";
+        pressEnterToContinue();
+        return -1;
+    }
+
+    cout << "Choose an address:\n\n";
+
+    for (int i = 0; i < addresses.size(); i++) {
+        cout << (i+1) << ") "
+             << addresses[i].getLine() << ", "
+             << addresses[i].getCity() << ", "
+             << addresses[i].getState() << " "
+             << addresses[i].getPostalCode() << "\n";
+
+        if (addresses[i].isDefault())
+            cout << "   " << color(ANSI_GREEN, "(Default)") << "\n";
+
+        cout << "\n";
+    }
+
+    cout << "0) Cancel\n\n";
+
+    int choice = getIntInput("Enter choice: ");
+
+    if (choice == 0)
+        return -1;
+
+    if (choice < 1 || choice > addresses.size())
+        return -1;
+
+    return addresses[choice - 1].getId();
 }

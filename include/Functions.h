@@ -4,6 +4,7 @@
 
 #include <string>
 #include <cppconn/connection.h>  // for sql::Connection*
+#include "Address.h"
 
 // Basic UI helpers
 void clearScreen();
@@ -12,7 +13,7 @@ int getIntInput(const std::string &prompt);
 void printFancyHeader(const std::string &title);
 std::string color(const std::string &code, const std::string &text);
 
-// Updated prototypes with customerId parameter
+// Product & Category flows
 void productDetailsScreen(int productId, int customerId, sql::Connection* con);
 void handleProductsFlow(sql::Connection *con,
                         const std::string &category,
@@ -24,17 +25,14 @@ void handleSubcategoryFlow(sql::Connection *con,
 void runCategoryMenu(sql::Connection *con, int customerId);
 void runSearchMenu(sql::Connection* con, int customerId);
 
-// My Profile / Orders UI (B3)
-void showMyProfile(sql::Connection* con, int customerId, const std::string &loggedInEmail);
-void showMyOrders(sql::Connection* con, int customerId);
-void showOrderDetails(sql::Connection* con, int orderId, int orderNumber);
-void editProfileMenu(sql::Connection* con, int customerId, const std::string &loggedInEmail);
-
-// My Profile + Orders UI
+// My Profile + Orders
 void showMyProfile(sql::Connection* con, int customerId, const std::string &loggedInEmail);
 void editProfileMenu(sql::Connection* con, int customerId, const std::string &loggedInEmail);
 void showMyOrders(sql::Connection* con, int customerId);
 void showOrderDetails(sql::Connection* con, int orderId, int orderNumber);
 
+// Addresses (NEW)
+int selectDeliveryAddress(sql::Connection* con, int customerId);
+void manageAddresses(sql::Connection* con, int customerId);
 
 #endif

@@ -3,9 +3,9 @@
 
 #include "DBFunctions.h"
 #include "Customer.h"
+#include "Address.h"
 #include <iomanip>
 #include <limits>
-
 
 // -----------------------------
 // 1) ESTABLISHING THE DATABASE CONNECTION
@@ -411,7 +411,7 @@ int getCustomerIdByEmail(sql::Connection* con, const std::string& email) {
 
 
 // ---------------- createOrderFromCart ----------------
-bool createOrderFromCart(sql::Connection* con, int customerId, int &createdOrderId) {
+bool createOrderFromCart(sql::Connection* con, int customerId,int addressId, int &createdOrderId){
     if (!con) return false;
     try {
         // 1) load cart items
@@ -826,3 +826,129 @@ vector<int> filterProductsByPriceRange(sql::Connection* con, const string &cat, 
     } catch (...) {}
     return ids;
 }
+
+void displayCompactProductRow(sql::Connection* con, int productId, int index) {
+    sql::PreparedStatement* pstmt = nullptr;
+    sql::ResultSet* res = nullptr;
+
+    pstmt = con->prepareStatement(
+        "SELECT p.Product_ID, p.Product_Name, p.Stock_Qtn, p.Price, p.ExpiryDate, s.Sname "
+        "FROM PRODUCT p JOIN Supplier s ON p.SID = s.SID "
+        "WHERE p.Product_ID = ?"
+    );
+    pstmt->setInt(1, productId);
+    res = pstmt->executeQuery();
+
+    if (res->next()) {
+        cout << left
+             << setw(6)  << index
+             << setw(10) << res->getInt("Product_ID")
+             << setw(30) << res->getString("Product_Name")
+             << setw(10) << res->getInt("Stock_Qtn")
+             << setw(10) << res->getDouble("Price")
+             << setw(15) << res->getString("ExpiryDate")
+             << setw(20) << res->getString("Sname")
+             << "\n";
+    }
+
+    delete res;
+    delete pstmt;
+}
+
+bool addAddress(sql::Connection* con, int customerId,
+                const string &line, const string &city,
+                const string &state, const string &pincode) {
+
+    try {
+        sql::PreparedStatement* pstmt =
+            con->prepareStatement(
+                "INSERT INTO ADDRESS (CustomerID, AddressLine, City, State, PostalCode) "
+                "VALUES (?, ?, ?, ?, ?)"
+            );
+
+        pstmt->setInt(1, customerId);
+        pstmt->setString(2, line);
+        pstmt->setString(3, city);
+        pstmt->setString(4, state);
+        pstmt->setString(5, pincode);
+
+        pstmt->executeUpdate();
+        delete pstmt;
+        return true;
+    }
+    catch (sql::SQLException &e) {
+        cout << "Error in addAddress: " << e.what() << endl;
+        return false;
+    }
+}
+
+vector<pair<int,string>> loadAddresses(sql::Connection* con, int customerId) {
+    vector<pair<int,string>> list;
+
+    try {
+        sql::PreparedStatement* pstmt =
+            con->prepareStatement(
+                "SELECT AddressID, AddressLine FROM ADDRESS WHERE CustomerID=?"
+            );
+        pstmt->setInt(1, customerId);
+
+        sql::ResultSet* res = pstmt->executeQuery();
+
+        while (res->next()) {
+            int id = res->getInt("AddressID");
+            string line = res->getString("AddressLine");
+            list.push_back({id, line});
+        }
+
+        delete res;
+        delete pstmt;
+    }
+    catch (...) {}
+    return list;
+}
+
+bool deleteAddress(sql::Connection* con, int addressId) {
+    try {
+        sql::PreparedStatement* pstmt =
+            con->prepareStatement("DELETE FROM ADDRESS WHERE AddressID=?");
+        pstmt->setInt(1, addressId);
+        pstmt->executeUpdate();
+        delete pstmt;
+        return true;
+    }
+    catch (...) { return false; }
+}
+
+vector<Address> loadFullAddresses(sql::Connection* con, int customerId) {
+    vector<Address> list;
+    try {
+        sql::PreparedStatement* pstmt =
+            con->prepareStatement(
+                "SELECT AddressID, AddressLine, City, State, PostalCode, Country, IsDefault "
+                "FROM ADDRESS WHERE CustomerID=? ORDER BY IsDefault DESC"
+            );
+        pstmt->setInt(1, customerId);
+
+        sql::ResultSet* res = pstmt->executeQuery();
+
+        while (res->next()) {
+            Address a(
+                res->getInt("AddressID"),
+                res->getString("AddressLine"),
+                res->getString("City"),
+                res->getString("State"),
+                res->getString("PostalCode"),
+                res->getString("Country"),
+                res->getInt("IsDefault")
+            );
+            list.push_back(a);
+        }
+
+        delete res;
+        delete pstmt;
+    }
+    catch (...) {}
+
+    return list;
+}
+
